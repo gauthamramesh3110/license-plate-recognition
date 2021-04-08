@@ -6,10 +6,10 @@ import utilities
 from tqdm import tqdm
 
 
-def process_images(license_plates, show_index=-1):
-    license_plate_annotations = []
+def process_images(license_plate_images, show_index=-1):
+    license_plate_predictions = []
 
-    for index, (image, plate_number) in tqdm(enumerate(license_plates)):
+    for index, image in tqdm(enumerate(license_plate_images)):
         show = True if index == show_index else False
 
         original = utilities.resize(image, dims=(800, 200), show=show, title="original")
@@ -23,15 +23,15 @@ def process_images(license_plates, show_index=-1):
         image_title = "img_" + str(index) + ".jpg"
         bboxes = utilities.get_bboxes(image, original.copy(), threshold_w=2.5, threshold_h=0.25, show=show, save=False, title=image_title)
 
-        license_plate_annotations.append((original.copy(), plate_number, bboxes))
+        license_plate_predictions.append((original.copy(), bboxes))
         if show:
             if cv2.waitKey(0) & 0xFF == 27:
                 cv2.destroyAllWindows()
 
-    return license_plate_annotations
+    return license_plate_predictions
 
 
-def find_accuracy(license_plate_annotations, image_folder_path, show=False, save=False):
+def find_accuracy(license_plate_predictions, license_plate_numbers, image_folder_path, show=False, save=False):
     correct = 0
     partial = 0
 
@@ -42,7 +42,7 @@ def find_accuracy(license_plate_annotations, image_folder_path, show=False, save
         os.mkdir(correct_savepath)
         os.mkdir(wrong_savepath)
 
-    for (image, plate_number, bboxes) in license_plate_annotations:
+    for (image, bboxes), plate_number in zip(license_plate_predictions, license_plate_numbers):
         if len(plate_number) == len(bboxes):
             image_filepath = os.path.join(correct_savepath, str(plate_number) + ".jpg")
             if save:
@@ -54,8 +54,8 @@ def find_accuracy(license_plate_annotations, image_folder_path, show=False, save
                 utilities.save_image(image, image_filepath)
         partial += 1 - abs(len(plate_number) - len(bboxes)) / len(plate_number)
 
-    accuracy_license_plate = (correct / len(license_plate_annotations)) * 100
-    accuracy_characters = (partial / len(license_plate_annotations)) * 100
+    accuracy_license_plate = (correct / len(license_plate_predictions)) * 100
+    accuracy_characters = (partial / len(license_plate_predictions)) * 100
 
     if show:
         print("total accuracy = {:.2f}%".format(accuracy_license_plate))
@@ -65,15 +65,17 @@ def find_accuracy(license_plate_annotations, image_folder_path, show=False, save
 
 
 def main(image_folder_path):
-    license_plates = []
+    license_plate_images = []
+    license_plate_numbers = []
     for filename in os.listdir(image_folder_path):
         image_path = os.path.join(image_folder_path, filename)
         image = utilities.get_image(image_path)
         plate_number = filename.split(".")[0]
-        license_plates.append((image, plate_number))
+        license_plate_images.append(image)
+        license_plate_numbers.append(plate_number)
 
-    license_plate_annotations = process_images(license_plates, show_index=3)
-    accuracy_license_plate, accuracy_characters = find_accuracy(license_plate_annotations, image_folder_path, show=False, save=False)
+    license_plate_predictions = process_images(license_plate_images, show_index=3)
+    accuracy_license_plate, accuracy_characters = find_accuracy(license_plate_predictions, license_plate_numbers, image_folder_path, show=True, save=False)
 
 
 if __name__ == "__main__":
