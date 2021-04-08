@@ -1,0 +1,11 @@
+{
+  "git.ignoreLimitWarning": true,
+  "python.formatting.provider": "black",
+  "python.analysis.extraPaths": [
+    "${workspaceFolder}/scripts/character_segmentation"
+  ],
+  "python.formatting.blackArgs": [
+    "--line-length",
+    "150"
+  ],
+}

@@ -35,8 +35,8 @@ def find_accuracy(license_plate_annotations, image_folder_path, show=False, save
     correct = 0
     partial = 0
 
-    correct_savepath = os.path.join(image_folder_path, 'correct')
-    wrong_savepath = os.path.join(image_folder_path, 'wrong')
+    correct_savepath = os.path.join(image_folder_path, "correct")
+    wrong_savepath = os.path.join(image_folder_path, "wrong")
 
     if save:
         os.mkdir(correct_savepath)
@@ -72,7 +72,7 @@ def main(image_folder_path):
         plate_number = filename.split(".")[0]
         license_plates.append((image, plate_number))
 
-    license_plate_annotations = process_images(license_plates, show_index=11)
+    license_plate_annotations = process_images(license_plates, show_index=3)
     accuracy_license_plate, accuracy_characters = find_accuracy(license_plate_annotations, image_folder_path, show=False, save=False)
 
 

@@ -25,6 +25,11 @@ def binarize(image, inverted=False, adaptive=True, show=False, title="binarize")
         cv2.imshow(title, image)
     return image
 
+def get_canny_edges(image, min=30, max=200, show=False, title="canny"):
+    image = cv2.Canny(image, min, max)
+    if show:
+        cv2.imshow(title, image)
+    return image
 
 def dilate(image, kernel_size=(3, 3), show=False, title="dilate"):
     kernel = np.ones(kernel_size, np.uint8)
@@ -56,9 +61,3 @@ def invert(image, show=False, title="invert"):
         cv2.imshow(title, image)
     return image
 
-
-def get_canny_edges(image, min=30, max=200, show=False, title="canny"):
-    image = cv2.Canny(image, min, max)
-    if show:
-        cv2.imshow(title, image)
-    return image
