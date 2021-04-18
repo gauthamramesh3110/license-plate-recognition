@@ -1,12 +1,12 @@
 import xml.etree.ElementTree as et
 
-def get_voc(annotation:dict) -> et.ElementTree:
-    annotation = et.Element('annotation')
+def __get_voc(annotation:dict) -> et.ElementTree:
+    annotation_root = et.Element('annotation')
 
     # FILENAME
     filename = et.Element('filename')
     filename.text = annotation['filename']
-    annotation.append(filename)
+    annotation_root.append(filename)
     # END OF FILENAME
 
     # SIZE
@@ -24,16 +24,16 @@ def get_voc(annotation:dict) -> et.ElementTree:
     depth.text = annotation['depth']
     size.append(depth)
 
-    annotation.append(size)
+    annotation_root.append(size)
     # END OF SIZE
 
     # OBJECT
     for object in annotation['objects']:
-        object = et.Element('object')
+        object_root = et.Element('object')
 
         name = et.Element('name')
         name.text = object['name']
-        object.append(name)
+        object_root.append(name)
 
         bndbox = et.Element('bndbox')
 
@@ -53,18 +53,18 @@ def get_voc(annotation:dict) -> et.ElementTree:
         ymax.text = object['ymax']
         bndbox.append(ymax)
 
-        object.append(bndbox)
-        annotation.append(object)
+        object_root.append(bndbox)
+        annotation_root.append(object_root)
     # END OF OBJECT
 
-    xml_tree = et.ElementTree(annotation)
+    xml_tree = et.ElementTree(annotation_root)
     return xml_tree
 
 # TODO: Add functions for TXT and CSV formats
 
 def save_annotation(annotation:dict, savepath:str, type:str):
     if type is 'voc':
-        xml_tree = get_voc(annotation)
+        xml_tree = __get_voc(annotation)
         
         with open(savepath, 'wb') as file:
             xml_tree.write(file)

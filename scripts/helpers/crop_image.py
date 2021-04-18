@@ -1,78 +1,95 @@
-"""
-This script takes annotation data from space separated values and crops to that bounding box.
-The annotations are in the following format: 
-    <image_name> <width> <height> <xmin> <ymin> <xmax> <ymax>
-The script takes the following parameters: 
-    <annotation_path> <image_path> <save_path>
-
-    python crop_image.py ..\datasets\extracted\license-plate-car-cropped\annotations\ ..\datasets\extracted\license-plate-car-cropped\images\ ..\datasets\extracted\license-plate-cropped
-"""
 import sys
 import os
+import annotations
 from PIL import Image
 from tqdm import tqdm
+import xml.etree.ElementTree as et
+
+def get_from_voc(filepath) -> dict:
+
+    annotation = dict()
+
+    tree = et.parse(filepath)
+    root = tree.getroot()
+
+    annotation['filename'] = root.find('./filename').text
+    annotation['width'] = root.find('./size/width').text
+    annotation['height'] = root.find('./size/height').text
+    annotation['depth'] = root.find('./size/depth').text
+    annotation['objects'] = []
+
+    for object in root.findall('./object'):
+        annotation['objects'].append({
+            'name': object.find('./name').text,
+            'xmin': object.find('./bndbox/xmin').text,
+            'xmax': object.find('./bndbox/xmax').text,
+            'ymin': object.find('./bndbox/ymin').text,
+            'ymax': object.find('./bndbox/ymax').text,
+        })
+    
+    return annotation
+
+def find_object_index(objects, object_name:str) -> int:
+
+    for index, object in enumerate(objects):
+        if object['name'] == object_name:
+            return index
+    
+    return -1
 
 
-def crop_and_save(image_filepath, bbox_cood, save_filepath):
-    [xmin, ymin, xmax, ymax] = bbox_cood
+def main(image_folderpath, annotation_folderpath, save_folderpath):
+    image_save_folderpath = os.path.join(save_folderpath, 'images')
+    annotation_save_folderpath = os.path.join(save_folderpath, 'annotations')
 
-    image = Image.open(image_filepath)
-    cropped_image = image.crop((xmin, ymin, xmax, ymax))
-    cropped_image.save(save_filepath)
+    if not os.path.isdir(image_save_folderpath):
+        os.mkdir(image_save_folderpath)
+    if not os.path.isdir(annotation_save_folderpath):
+        os.mkdir(annotation_save_folderpath)
 
+    for annotation_filename in tqdm(os.listdir(annotation_folderpath)):
+        annotation_filepath = os.path.join(annotation_folderpath, annotation_filename)
+        annotation = get_from_voc(annotation_filepath)
 
-def get_bbox_cood(annotation_filepath):
+        image_filename = annotation['filename']
+        image_filepath = os.path.join(image_folderpath, image_filename)
 
-    with open(annotation_filepath) as file:
-        attributes = file.read().split(' ')
+        car_object_index = find_object_index(annotation['objects'], 'car')
+        licenseplate_object_index = find_object_index(annotation['objects'], 'license_plate')
 
-        filename = attributes[0]
-        bbox_cood = list(map(int, attributes[3:]))
+        xmin = int(annotation['objects'][car_object_index]['xmin'])
+        xmax = int(annotation['objects'][car_object_index]['xmax'])
+        ymin = int(annotation['objects'][car_object_index]['ymin'])
+        ymax = int(annotation['objects'][car_object_index]['ymax'])
+        
+        xmin_lp = int(annotation['objects'][licenseplate_object_index]['xmin'])
+        xmax_lp = int(annotation['objects'][licenseplate_object_index]['xmax'])
+        ymin_lp = int(annotation['objects'][licenseplate_object_index]['ymin'])
+        ymax_lp = int(annotation['objects'][licenseplate_object_index]['ymax'])
 
-        if len(bbox_cood) != 4:
-            raise AssertionError
+        annotation['objects'][licenseplate_object_index]['xmin'] = str(xmin_lp - xmin)
+        annotation['objects'][licenseplate_object_index]['xmax'] = str(xmax_lp - xmin)
+        annotation['objects'][licenseplate_object_index]['ymin'] = str(ymin_lp - ymin)
+        annotation['objects'][licenseplate_object_index]['ymax'] = str(ymax_lp - ymin)
 
-        return filename, bbox_cood
+        annotation['objects'].pop(car_object_index)
 
+        annotation['width'] = str(xmax-xmin)
+        annotation['height'] = str(ymax-ymin)
 
-def main(annotation_path, image_path, save_path):
+        image = Image.open(image_filepath)
+        image = image.crop((xmin, ymin, xmax, ymax))
+        
+        annotation_save_filename = image_filename.split('.')[0] + '.xml'
+        annotation_save_filepath = os.path.join(annotation_save_folderpath, annotation_save_filename)
+        annotations.save_annotation(annotation, annotation_save_filepath, 'voc')
 
-    for annotation_filename in tqdm(os.listdir(annotation_path)):
-        annotation_filepath = os.path.join(annotation_path,
-                                           annotation_filename)
-        image_filename, bbox_cood = get_bbox_cood(annotation_filepath)
-        image_filepath = os.path.join(image_path, image_filename)
-        save_filepath = os.path.join(save_path, image_filename)
-        crop_and_save(image_filepath, bbox_cood, save_filepath)
-
+        image_save_filepath = os.path.join(image_save_folderpath, image_filename)
+        image.save(image_save_filepath)
 
 if __name__ == '__main__':
+    image_folderpath = sys.argv[1]
+    annotation_folderpath = sys.argv[2]
+    save_folderpath = sys.argv[3]
 
-    if len(sys.argv) < 4:
-        print('Insufficent arguments. See below for argument format:')
-        print(
-            'python crop_image.py <annotation_path> <image_path> <save_path>')
-        exit()
-
-    # GET ALL ARGUMENT VALUES
-    annotation_path = sys.argv[1]
-    image_path = sys.argv[2]
-    save_path = sys.argv[3]
-
-    # CHECK IF ANNOTATION AND IMAGE PATHS EXIST
-    path_error = False
-
-    if not os.path.exists(annotation_path):
-        print('Annotation path doesn\'t exist. Please check.')
-
-    if not os.path.exists(image_path):
-        print('Image path doesn\'t exist. Please check.')
-
-    if path_error:
-        exit()
-
-    # CREATE SAVE FOLDER IF IT DOESN'T EXIST
-    if not os.path.exists(save_path):
-        os.mkdir(save_path)
-
-    main(annotation_path, image_path, save_path)
+    main(image_folderpath, annotation_folderpath, save_folderpath)
