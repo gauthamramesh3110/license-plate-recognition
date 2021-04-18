@@ -3,7 +3,8 @@
   "python.formatting.provider": "black",
   "python.analysis.extraPaths": [
     "${workspaceFolder}/scripts/character_segmentation",
-    "${workspaceFolder}/scripts/"
+    "${workspaceFolder}/scripts/",
+    "${workspaceFolder}/scripts/helpers"
   ],
   "python.formatting.blackArgs": [
     "--line-length",
