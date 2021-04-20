@@ -35,6 +35,18 @@ def __get_voc(annotation:dict) -> et.ElementTree:
         name.text = object['name']
         object_root.append(name)
 
+        pose = et.Element('pose')
+        pose.text = 'Unspecified'
+        object_root.append(pose)
+
+        truncated = et.Element('truncated')
+        truncated.text = '0'
+        object_root.append(truncated)
+
+        difficult = et.Element('difficult')
+        difficult.text = '0'
+        object_root.append(difficult)
+
         bndbox = et.Element('bndbox')
 
         xmin = et.Element('xmin')
@@ -63,7 +75,7 @@ def __get_voc(annotation:dict) -> et.ElementTree:
 # TODO: Add functions for TXT and CSV formats
 
 def save_annotation(annotation:dict, savepath:str, type:str):
-    if type is 'voc':
+    if type == 'voc':
         xml_tree = __get_voc(annotation)
         
         with open(savepath, 'wb') as file:
